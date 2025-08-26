@@ -59,7 +59,7 @@ export function Season() {
                 <div className="card" style={{ display: "flex", flexDirection: "column", filter: historique ? "blur(2px) grayscale(100%)" : "none" }} onClick={onClick}>
                     <div className="card-image" style={{ flex: "1 1 auto" }}>
                         <figure className="image is-square" style={{ margin: 0 }}>
-                            <img src={episode.imgURL} alt={episode.title} style={{ height: "60%" }} />
+                            <img src={episode.imgUrl} alt={episode.title} style={{ height: "60%" }} />
                         </figure>
                     </div>
                     <div className="card-content has-text-centered">

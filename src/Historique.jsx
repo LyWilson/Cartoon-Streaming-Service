@@ -1,125 +1,79 @@
 import { useParams, Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { svrURL } from "./constants.js";
 import { useAuth } from "./Auth";
 import { useHistoryContext } from "./History";
+import { useQuery } from '@tanstack/react-query';
+import {
+  Container,
+  Grid,
+  Typography,
+  Card,
+  CardContent,
+  Box,
+  Pagination,
+  CircularProgress,
+  Button
+} from '@mui/material';
 
 export function Historique() {
-    const { historiquesId } = useParams();
     const [pageCourante, setPageCourante] = useState(1);
     const [taillePage] = useState(6);
     const { authToken } = useAuth();
-    const { history, setHistory } = useHistoryContext();
+    const { setHistory } = useHistoryContext();
 
-    useEffect(() => {
-        async function fetchHistorique() {
-            if (!authToken) return;
-
-            try {
-                const response = await fetch(`${svrURL}/user/history`, {
-                    headers: {
-                        Authorization: `Bearer ${authToken}`,
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log(data);
-                    setHistory(data);
-                }
-            } catch (error) {
-                console.error('Error fetching Historique:', error);
-            }
+    const { data: history = [], isLoading, error } = useQuery({
+        queryKey: ['history', authToken],
+        queryFn: async () => {
+            if (!authToken) return [];
+            const response = await fetch(`${svrURL}/user/history`, {
+                headers: { Authorization: `Bearer ${authToken}` }
+            });
+            if (!response.ok) throw new Error('Failed to fetch history');
+            const data = await response.json();
+            setHistory(data);
+            return data;
         }
-
-        fetchHistorique();
-    }, [authToken, setHistory]);
+    });
 
     const totalEpisodes = history.length;
     const totalPages = Math.ceil(totalEpisodes / taillePage);
-
-    const afficherEpisodes = () => {
-        const debut = (pageCourante - 1) * taillePage;
-        const episodesAffichage = history.slice(debut, debut + taillePage);
-        return episodesAffichage.map((episode) => (
-            <EpisodeGenerateur key={episode.episodeId} episode={episode} />
-        ));
-    };
+    const episodesAffichage = history.slice((pageCourante - 1) * taillePage, pageCourante * taillePage);
 
     function EpisodeGenerateur({ episode }) {
         return (
-            <div className="column is-4-desktop is-4-tablet is-6-mobile">
-                <div className="card" style={{ display: "flex", flexDirection: "column" }}>
-                    <div className="card-image" style={{ flex: "1 1 auto" }}>
-                        <figure className="image is-square" style={{ margin: 0 }}>
-                            <img src={episode.imgURL} alt={episode.title} style={{ height: "60%" }} />
-                        </figure>
-                    </div>
-                    <div className="card-content has-text-centered">
-                        <Link to={`/details/${episode.tvshowId}`} className="title is-5 has-text-link">{episode.tvshowTitle}</Link>
-                    </div>
-                    <div className="card-content has-text-centered">
-                        <Link to={`/episodes/${episode.seasonId}`} className="title is-5 has-text-link">Season {episode.seasonNumber}</Link>
-                    </div>
-                    <div className="card-content has-text-centered">
-                        <Link to={`/episode/${episode.episodeId}`} className="title is-5 has-text-link">{episode.episodeTitle}</Link>
-                    </div>
-                </div>
-            </div>
+            <Grid item xs={12} sm={6} md={4} key={episode.episodeId}>
+                <Card>
+                    <CardContent>
+                        <img src={episode.imgUrl} alt={episode.title} style={{ width: '100%', borderRadius: 8 }} />
+                        <Typography variant="h6" sx={{ mt: 1 }}>
+                            <Link to={`/details/${episode.tvshowId}`}>{episode.tvshowTitle}</Link>
+                        </Typography>
+                    </CardContent>
+                </Card>
+            </Grid>
         );
     }
 
-    const renderPagination = () => {
-        const pages = [];
-        for (let i = 1; i <= totalPages; i++) {
-            pages.push(
-                <li key={i}>
-                    <span
-                        className={pageCourante === i ? "pagination-link is-current" : "pagination-link"}
-                        aria-label={`Page ${i}`}
-                        onClick={() => setPageCourante(i)}
-                    >
-                        {i}
-                    </span>
-                </li>
-            );
-        }
-        return pages;
-    };
+    if (isLoading) return <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px"><CircularProgress /></Box>;
+    if (error) return <Typography color="error" align="center">Error loading history.</Typography>;
 
     return (
-        <div className="container">
-            {history.length > 0 ? (
-                <>
-                    <h1 className="title has-text-centered">History</h1>
-                    <div className="columns is-multiline">
-                        {afficherEpisodes()}
-                    </div>
-                    <nav className="pagination" role="navigation" aria-label="pagination">
-                        <span
-                            className="pagination-previous"
-                            onClick={() => {
-                                if (pageCourante > 1) setPageCourante(pageCourante - 1);
-                            }}
-                        >
-                            {"<"}
-                        </span>
-                        <span
-                            className="pagination-next"
-                            onClick={() => {
-                                if (pageCourante < totalPages) setPageCourante(pageCourante + 1);
-                            }}
-                        >
-                            {">"}
-                        </span>
-                        <ul className="pagination-list">
-                            {renderPagination()}
-                        </ul>
-                    </nav>
-                </>
-            ) : (
-                <p className="has-text-centered">No history available.</p>
-            )}
-        </div>
+        <Container maxWidth="lg" sx={{ mt: 4 }}>
+            <Typography variant="h4" align="center" gutterBottom>Historique</Typography>
+            <Grid container spacing={3}>
+                {episodesAffichage.map((episode) => (
+                    <EpisodeGenerateur key={episode.episodeId} episode={episode} />
+                ))}
+            </Grid>
+            <Box display="flex" justifyContent="center" alignItems="center" mt={3}>
+                <Pagination
+                    count={totalPages}
+                    page={pageCourante}
+                    onChange={(e, value) => setPageCourante(value)}
+                    color="primary"
+                />
+            </Box>
+        </Container>
     );
 }

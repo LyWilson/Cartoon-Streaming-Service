@@ -1,118 +1,109 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { svrURL } from './constants.js';
+import { useQuery } from '@tanstack/react-query';
+import {
+  Container,
+  Grid,
+  Typography,
+  Card,
+  CardContent,
+  Button,
+  Box,
+  Chip,
+  CircularProgress
+} from '@mui/material';
 
 export function Details() {
     const { tvshowId } = useParams();
-    const [tvshow, setTvshow] = useState(null);
-
-    useEffect(() => {
-        async function fetchTvshowDetails() {
-            try {
-                const response = await fetch(`${svrURL}/tvshow?tvshowId=${tvshowId}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    setTvshow(data);
-                }
-            } catch (error) {
-                console.error('Error fetching TV show details:', error);
+    const { data: tvshow, isLoading, error } = useQuery({
+        queryKey: ['tvshow', tvshowId],
+        queryFn: async () => {
+            const response = await fetch(`${svrURL}/tvshow?tvshowId=${tvshowId}`);
+            if (!response.ok) throw new Error('Failed to fetch TV show details');
+            const data = await response.json();
+            // Patch property names for compatibility
+            if (data.imgURL) data.imgUrl = data.imgURL;
+            if (data.audioURL) data.audioUrl = data.audioURL;
+            if (data.roles) data.voiceActors = data.roles;
+            if (data.seasons) {
+                data.seasons = data.seasons.map(season => ({
+                    ...season,
+                    imgUrl: season.imgURL || season.imgUrl,
+                }));
             }
+            return data;
         }
-        fetchTvshowDetails();
-    }, []);
+    });
 
-    function handleClick (seasonId) {
+    function handleClick(seasonId) {
         window.location.href = `/episodes/${seasonId}`;
     }
 
-    return <div>
-        <div className="container">
-            {
-                tvshow !== null &&
-        <div className="details">
-            <div className="field-body">
-                <div className="column is-4-desktop is-4-tablet is-6-mobile">
-                    <figure className="image">
-                        <img src={tvshow.imgURL} alt={tvshow.title}/>
-                    </figure>
-                </div>
-                <div className="column is-8">
-                    <div className="column">
-                        <span htmlFor="titre" className="title is-2">{tvshow.title}</span>
-                    </div>
-                    <div className="column is-pulled-right" style={{marginRight: "2.8%"}}>
-                        <span htmlFor="genres">{tvshow.genres.map((t) => t.name).join(", ")}</span>
-                    </div>
-                    <div className="column">
-                        <span htmlFor="Date de parution">{tvshow.year}</span>
-                    </div>
-                    <div className="column">
-                        <span htmlFor="nombre d'episode">{tvshow.episodeCount} episodes</span>
-                        <span htmlFor="tv Parental Guideline"
-                              style={{marginLeft: "6%"}}>{tvshow.tvParentalGuideline}</span>
-                    </div>
-                    <div className="column">
-                        <span htmlFor="Studio">Studio</span>
-                        <span htmlFor="Nom du studio" style={{marginLeft: "10.75%"}}>{tvshow.studio.name}</span>
-                    </div>
-                    <div className="column has-text-justified" style={{marginRight: "2.8%"}}>{tvshow.plot}</div>
-                    <div className="column">
-                        <audio controls id="cryURL" src={tvshow.audioURL} autoPlay>
-                            <source type="audio/ogg"/>
-                            Your browser does not support the audio element.
-                        </audio>
-                    </div>
-                </div>
-            </div>
-            <div style={{overflow: "auto"}}>
-                <div style={{
-                    display: "flex",
-                    position: "relative",
-                    marginLeft: "0.9%",
-                    marginTop: 50,
-                    marginBottom: 50
-                }}>
-                    {tvshow.roles.map(role => (
-                        <div className="card has-text-centered" key={role.roleId}
-                             style={{minHeight: 300, minWidth: 200, marginRight: 25}}>
-                            <figure className="card-image">
-                                <img src={role.imgURL} alt={role.name}/>
-                            </figure>
-                            <div>
-                                <span><b>{role.name}</b></span>
-                            </div>
-                            <span>{role.character}</span>
+    if (isLoading) return <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px"><CircularProgress /></Box>;
+    if (error) return <Typography color="error" align="center">Error loading TV show details.</Typography>;
+    if (!tvshow) return null;
+
+    if (tvshow) {
+        console.log('Image URL:', tvshow.imgUrl);
+    }
+
+    return (
+        <div className="container" style={{ marginTop: 32 }}>
+            {tvshow && (
+                <div className="details">
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32 }}>
+                        <div style={{ flex: '0 0 320px', maxWidth: 320 }}>
+                            <img src={tvshow.imgUrl} alt={tvshow.title} style={{ width: '100%', borderRadius: 8 }} />
                         </div>
-                    ))}
-                </div>
-            </div>
-            <div style={{overflow: "auto"}}>
-                <div style={{
-                    display: "flex",
-                    position: "relative",
-                    marginLeft: "0.9%",
-                    marginTop: 50,
-                    marginBottom: 50
-                }}>
-                    {tvshow.seasons.map(season => (
-                        <div className="column is-3 card has-text-centered" key={season.seasonId}
-                             style={{minHeight: 300, minWidth: 200, marginRight: 25}}
-                             onClick={() => handleClick(season.seasonId)}>
-                            <figure className="card-image">
-                                <img src={season.imgURL} alt={`Season ${season.number}`}/>
-                            </figure>
-                            <div style={{marginTop: 10, height: 50}}>
-                                <span className="title is-4">Season {season.number}</span>
-                            </div>
-                            <div style={{marginTop: 10, height: 50}}>
-                                <span>{season.episodeCount} episodes</span>
+                        <div style={{ flex: '1 1 400px', minWidth: 320 }}>
+                            <div style={{ fontSize: 32, fontWeight: 700, marginBottom: 8 }}>{tvshow.title}</div>
+                            <div style={{ marginBottom: 8, color: '#888' }}>{tvshow.genres.map((t) => t.name).join(", ")}</div>
+                            <div style={{ marginBottom: 8 }}>{tvshow.year}</div>
+                            <div style={{ marginBottom: 8 }}>{tvshow.episodeCount} episodes <span style={{ marginLeft: 24 }}>{tvshow.tvParentalGuideline}</span></div>
+                            <div style={{ marginBottom: 8 }}>Studio <span style={{ marginLeft: 24 }}>{tvshow.studio.name}</span></div>
+                            <div style={{ marginBottom: 8 }}>{tvshow.plot}</div>
+                            <div style={{ marginBottom: 8 }}>
+                                <audio controls src={tvshow.audioUrl} style={{ width: '100%' }} />
                             </div>
                         </div>
-                    ))}
+                    </div>
+
+                    {/* Voice Actors Section */}
+                    {tvshow.voiceActors && tvshow.voiceActors.length > 0 && (
+                        <div style={{ overflow: 'auto', marginTop: 40, marginBottom: 40 }}>
+                            <div style={{ display: 'flex', gap: 25, marginLeft: 8 }}>
+                                {tvshow.voiceActors.map((actor) => (
+                                    <div key={actor.roleId || actor.name} style={{ minHeight: 300, minWidth: 200, background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #0001', textAlign: 'center', padding: 16 }}>
+                                        <img src={actor.imgURL || actor.imgUrl} alt={actor.name} style={{ width: '100%', borderRadius: 8, marginBottom: 8 }} />
+                                        <div><b>{actor.name}</b></div>
+                                        <div>{actor.character}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Seasons Section */}
+                    {tvshow.seasons && tvshow.seasons.length > 0 && (
+                        <div style={{ overflow: 'auto', marginTop: 40, marginBottom: 40 }}>
+                            <div style={{ display: 'flex', gap: 25, marginLeft: 8 }}>
+                                {tvshow.seasons.map((season) => (
+                                    <div key={season.seasonId} style={{ minHeight: 300, minWidth: 200, background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #0001', textAlign: 'center', padding: 16, cursor: 'pointer' }} onClick={() => handleClick(season.seasonId)}>
+                                        <img src={season.imgUrl} alt={`Season ${season.number}`} style={{ width: '300px', height: '300px', objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
+                                        <div style={{ marginTop: 10, height: 50 }}>
+                                            <span style={{ fontSize: 20, fontWeight: 600 }}>Season {season.number}</span>
+                                        </div>
+                                        <div style={{ marginTop: 10, height: 50 }}>
+                                            <span>{season.episodeCount} episodes</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
-            </div>
+            )}
         </div>
-            }
-        </div>
-    </div>;
+    );
 }
