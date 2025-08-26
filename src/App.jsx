@@ -25,9 +25,8 @@ export function App() {
                         <Route path="/" element={<Home/>}/>
                         <Route path="*" element={<NoMatch/>}/>
                         <Route path="/details/:tvshowId" element={<Details/>}/>
-                        <Route path="/episodes/:seasonsId" element={<Season/>}/>
+                        <Route path="/season/:seasonId" element={<Season/>}/>
                         <Route path="/episode/:episodeId" element={<Episode/>}/>
-                        <Route path="/episodes/:episodeId" element={<Episode/>}/>
                         <Route path="/login" element={<Login/>}/>
                         <Route path="/register" element={<Register/>}/>
                         <Route path="/history" element={<Historique/>}/>

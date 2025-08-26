@@ -37,7 +37,7 @@ export function Details() {
     });
 
     function handleClick(seasonId) {
-        window.location.href = `/episodes/${seasonId}`;
+    window.location.href = `/season/${seasonId}`;
     }
 
     if (isLoading) return <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px"><CircularProgress /></Box>;

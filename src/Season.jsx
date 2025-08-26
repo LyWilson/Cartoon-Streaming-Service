@@ -4,7 +4,7 @@ import { svrURL } from "./constants.js";
 import { useHistoryContext} from "./History.jsx";
 
 export function Season() {
-    const { seasonsId } = useParams();
+    const { seasonId } = useParams();
     const navigate = useNavigate();
     const [season, setSeason] = useState(null);
     const [episodes, setEpisodes] = useState([]);
@@ -15,7 +15,7 @@ export function Season() {
     useEffect(() => {
         async function fetchSeason() {
             try {
-                const response = await fetch(`${svrURL}/episodes?seasonId=${seasonsId}`);
+                const response = await fetch(`${svrURL}/episodes?seasonId=${seasonId}`);
                 if (response.ok) {
                     const data = await response.json();
                     setSeason(data);
@@ -26,7 +26,7 @@ export function Season() {
             }
         }
         fetchSeason();
-    }, [seasonsId]);
+    }, [seasonId]);
 
     const totalEpisodes = episodes.length;
     const totalPages = Math.ceil(totalEpisodes / taillePage);
